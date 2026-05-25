@@ -1,0 +1,1016 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace тестирование335
+{
+    public partial class Form1 : Form
+    {
+        // Список для хранения выбранных блюд
+        private List<CartItem> cartItems = new List<CartItem>();
+        private Panel contentPanel;
+        private FlowLayoutPanel cartFlowPanel;
+
+        public Form1()
+        {
+            this.Text = "☕ Управление кафе";
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.Size = new Size(1100, 750);
+            this.BackColor = Color.FromArgb(240, 240, 240);
+
+            // Создаем верхнее меню
+            MenuStrip menuStrip = new MenuStrip();
+            menuStrip.BackColor = Color.FromArgb(139, 69, 19);
+            menuStrip.ForeColor = Color.White;
+            menuStrip.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+            menuStrip.Padding = new Padding(10, 5, 10, 5);
+
+            // Пункты меню
+            ToolStripMenuItem menuMenu = new ToolStripMenuItem("📋 МЕНЮ");
+            ToolStripMenuItem ordersMenu = new ToolStripMenuItem("🛒 ЗАКАЗЫ");
+            ToolStripMenuItem tablesMenu = new ToolStripMenuItem("🪑 СТОЛИКИ");
+            ToolStripMenuItem employeesMenu = new ToolStripMenuItem("👥 СОТРУДНИКИ");
+            ToolStripMenuItem infoMenu = new ToolStripMenuItem("ℹ️ ИНСТРУКЦИЯ");
+
+            menuStrip.Items.Add(menuMenu);
+            menuStrip.Items.Add(ordersMenu);
+            menuStrip.Items.Add(tablesMenu);
+            menuStrip.Items.Add(employeesMenu);
+            menuStrip.Items.Add(infoMenu);
+
+            this.Controls.Add(menuStrip);
+
+            // Панель для отображения содержимого
+            contentPanel = new Panel();
+            contentPanel.Dock = DockStyle.Fill;
+            contentPanel.Padding = new Padding(20);
+            contentPanel.BackColor = Color.White;
+            this.Controls.Add(contentPanel);
+
+            // Показываем приветствие
+            ShowWelcome();
+
+            // Обработчики кликов
+            menuMenu.Click += (s, e) => ShowMenu();
+            ordersMenu.Click += (s, e) => ShowCart();
+            tablesMenu.Click += (s, e) => ShowTables();
+            employeesMenu.Click += (s, e) => ShowEmployees();
+            infoMenu.Click += (s, e) => ShowInstructions();
+        }
+
+        private void ShowWelcome()
+        {
+            contentPanel.Controls.Clear();
+            contentPanel.BackColor = Color.FromArgb(255, 248, 240);
+
+            Label welcomeLabel = new Label();
+            welcomeLabel.Text = "🍽️ ДОБРО ПОЖАЛОВАТЬ В НАШЕ КАФЕ 🍽️\n\n" +
+                               "✨ Изысканная кухня и уютная атмосфера ✨\n\n" +
+                               "★ Нажмите ℹ️ ИНСТРУКЦИЯ в меню выше ★";
+            welcomeLabel.Font = new Font("Segoe UI", 18, FontStyle.Bold);
+            welcomeLabel.TextAlign = ContentAlignment.MiddleCenter;
+            welcomeLabel.Dock = DockStyle.Fill;
+            welcomeLabel.ForeColor = Color.FromArgb(139, 69, 19);
+            contentPanel.Controls.Add(welcomeLabel);
+        }
+
+        // КРАСИВОЕ УВЕДОМЛЕНИЕ
+        private void ShowNotification(string title, string message, string icon, Color color)
+        {
+            Form notification = new Form();
+            notification.Text = title;
+            notification.StartPosition = FormStartPosition.CenterParent;
+            notification.Size = new Size(500, 280);
+            notification.FormBorderStyle = FormBorderStyle.FixedDialog;
+            notification.MaximizeBox = false;
+            notification.MinimizeBox = false;
+            notification.BackColor = Color.White;
+            notification.ShowInTaskbar = false;
+            notification.TopMost = true;
+
+            Label iconLabel = new Label();
+            iconLabel.Text = icon;
+            iconLabel.Font = new Font("Segoe UI", 52);
+            iconLabel.Location = new Point(25, 60);
+            iconLabel.Size = new Size(90, 90);
+            iconLabel.TextAlign = ContentAlignment.MiddleCenter;
+
+            Label titleLabel = new Label();
+            titleLabel.Text = title;
+            titleLabel.Font = new Font("Segoe UI", 18, FontStyle.Bold);
+            titleLabel.ForeColor = color;
+            titleLabel.Location = new Point(140, 35);
+            titleLabel.Size = new Size(310, 40);
+            titleLabel.TextAlign = ContentAlignment.MiddleLeft;
+
+            Label messageLabel = new Label();
+            messageLabel.Text = message;
+            messageLabel.Font = new Font("Segoe UI", 12);
+            messageLabel.ForeColor = Color.FromArgb(64, 64, 64);
+            messageLabel.Location = new Point(140, 85);
+            messageLabel.Size = new Size(310, 110);
+            messageLabel.TextAlign = ContentAlignment.TopLeft;
+
+            Button okButton = new Button();
+            okButton.Text = "✓ ХОРОШО";
+            okButton.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+            okButton.Size = new Size(140, 45);
+            okButton.Location = new Point(170, 210);
+            okButton.BackColor = color;
+            okButton.ForeColor = Color.White;
+            okButton.FlatStyle = FlatStyle.Flat;
+            okButton.Cursor = Cursors.Hand;
+            okButton.Click += (s, e) => notification.Close();
+
+            notification.Controls.Add(iconLabel);
+            notification.Controls.Add(titleLabel);
+            notification.Controls.Add(messageLabel);
+            notification.Controls.Add(okButton);
+
+            notification.ShowDialog();
+        }
+
+        // ФОРМА ВЫБОРА ОФИЦИАНТА И ПОВАРА
+        private void ShowOrderAssignmentForm(decimal totalSum)
+        {
+            Form assignForm = new Form();
+            assignForm.Text = "👥 НАЗНАЧЕНИЕ ПЕРСОНАЛА";
+            assignForm.StartPosition = FormStartPosition.CenterParent;
+            assignForm.Size = new Size(650, 500);
+            assignForm.FormBorderStyle = FormBorderStyle.FixedDialog;
+            assignForm.MaximizeBox = false;
+            assignForm.MinimizeBox = false;
+            assignForm.BackColor = Color.White;
+
+            Label title = new Label();
+            title.Text = "📋 НАЗНАЧЕНИЕ ОТВЕТСТВЕННЫХ\nЗА ЗАКАЗ";
+            title.Font = new Font("Segoe UI", 18, FontStyle.Bold);
+            title.ForeColor = Color.FromArgb(139, 69, 19);
+            title.Size = new Size(600, 60);
+            title.Location = new Point(30, 20);
+            title.TextAlign = ContentAlignment.MiddleCenter;
+            assignForm.Controls.Add(title);
+
+            // Список официантов
+            Label waiterLabel = new Label();
+            waiterLabel.Text = "👨‍🍳 ВЫБЕРИТЕ ОФИЦИАНТА:";
+            waiterLabel.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+            waiterLabel.Location = new Point(30, 100);
+            waiterLabel.Size = new Size(250, 30);
+            assignForm.Controls.Add(waiterLabel);
+
+            ComboBox cmbWaiter = new ComboBox();
+            cmbWaiter.Location = new Point(30, 135);
+            cmbWaiter.Size = new Size(260, 30);
+            cmbWaiter.Font = new Font("Segoe UI", 11);
+            cmbWaiter.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbWaiter.Items.AddRange(new string[] {
+                "👨 Иванов Иван (5 лет опыта)",
+                "👩 Петрова Мария (3 года опыта)",
+                "👩 Сидорова Анна (1 год опыта)",
+                "👨 Козлов Дмитрий (4 года опыта)"
+            });
+            cmbWaiter.SelectedIndex = 0;
+            assignForm.Controls.Add(cmbWaiter);
+
+            // Статистика официанта
+            Label waiterStats = new Label();
+            waiterStats.Text = "📊 Обслужено заказов сегодня: 12\n⭐ Рейтинг: 4.8 ★";
+            waiterStats.Font = new Font("Segoe UI", 9);
+            waiterStats.ForeColor = Color.Gray;
+            waiterStats.Location = new Point(30, 170);
+            waiterStats.Size = new Size(260, 40);
+            assignForm.Controls.Add(waiterStats);
+
+            // Список поваров
+            Label cookLabel = new Label();
+            cookLabel.Text = "👩‍🍳 ВЫБЕРИТЕ ПОВАРА:";
+            cookLabel.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+            cookLabel.Location = new Point(350, 100);
+            cookLabel.Size = new Size(250, 30);
+            assignForm.Controls.Add(cookLabel);
+
+            ComboBox cmbCook = new ComboBox();
+            cmbCook.Location = new Point(350, 135);
+            cmbCook.Size = new Size(260, 30);
+            cmbCook.Font = new Font("Segoe UI", 11);
+            cmbCook.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbCook.Items.AddRange(new string[] {
+                "👨‍🍳 Шеф-повар Александр (Специалист: стейки)",
+                "👩‍🍳 Повар Елена (Специалист: итальянская кухня)",
+                "👨‍🍳 Повар Сергей (Специалист: салаты)",
+                "👩‍🍳 Повар Ольга (Специалист: десерты)"
+            });
+            cmbCook.SelectedIndex = 0;
+            assignForm.Controls.Add(cmbCook);
+
+            // Статистика повара
+            Label cookStats = new Label();
+            cookStats.Text = "📊 Готовит заказов: 45\n⭐ Рейтинг: 4.9 ★";
+            cookStats.Font = new Font("Segoe UI", 9);
+            cookStats.ForeColor = Color.Gray;
+            cookStats.Location = new Point(350, 170);
+            cookStats.Size = new Size(260, 40);
+            assignForm.Controls.Add(cookStats);
+
+            // Информация о заказе
+            Panel orderInfoPanel = new Panel();
+            orderInfoPanel.Location = new Point(30, 230);
+            orderInfoPanel.Size = new Size(580, 100);
+            orderInfoPanel.BackColor = Color.FromArgb(248, 248, 248);
+            orderInfoPanel.BorderStyle = BorderStyle.FixedSingle;
+
+            Label orderInfo = new Label();
+            orderInfo.Text = $"🛒 СУММА ЗАКАЗА: {totalSum} ₽\n\n👥 Количество блюд: {cartItems.Count}\n⏱️ Время приготовления: ~{cartItems.Count * 5} минут";
+            orderInfo.Font = new Font("Segoe UI", 11);
+            orderInfo.Location = new Point(15, 15);
+            orderInfo.Size = new Size(550, 80);
+            orderInfoPanel.Controls.Add(orderInfo);
+            assignForm.Controls.Add(orderInfoPanel);
+
+            Button btnConfirm = new Button();
+            btnConfirm.Text = "✅ ПОДТВЕРДИТЬ ЗАКАЗ";
+            btnConfirm.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+            btnConfirm.Size = new Size(220, 45);
+            btnConfirm.Location = new Point(150, 360);
+            btnConfirm.BackColor = Color.FromArgb(76, 175, 80);
+            btnConfirm.ForeColor = Color.White;
+            btnConfirm.FlatStyle = FlatStyle.Flat;
+            btnConfirm.Cursor = Cursors.Hand;
+            btnConfirm.Click += (s, e) =>
+            {
+                string waiter = cmbWaiter.SelectedItem.ToString();
+                string cook = cmbCook.SelectedItem.ToString();
+
+                string receipt = $"🍽️ ВАШ ЗАКАЗ ПРИНЯТ! 🍽️\n\n" +
+                                $"💰 Сумма: {totalSum} ₽\n" +
+                                $"👨‍🍳 Официант: {waiter}\n" +
+                                $"👩‍🍳 Повар: {cook}\n" +
+                                $"⏱️ Время приготовления: ~{cartItems.Count * 5} минут\n\n" +
+                                $"📋 Детали заказа:\n";
+
+                foreach (var item in cartItems)
+                {
+                    receipt += $"   • {item.Name} x{item.Quantity} = {item.Price * item.Quantity} ₽\n";
+                }
+
+                receipt += $"\n✨ Приятного аппетита! ✨\n📞 Вопросы? Звоните: +7 (999) 123-45-67";
+
+                assignForm.Close();
+                ShowOrderReceipt(receipt, waiter, cook);
+            };
+
+            Button btnCancel = new Button();
+            btnCancel.Text = "❌ ОТМЕНА";
+            btnCancel.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+            btnCancel.Size = new Size(150, 45);
+            btnCancel.Location = new Point(390, 360);
+            btnCancel.BackColor = Color.FromArgb(158, 158, 158);
+            btnCancel.ForeColor = Color.White;
+            btnCancel.FlatStyle = FlatStyle.Flat;
+            btnCancel.Cursor = Cursors.Hand;
+            btnCancel.Click += (s, e) => assignForm.Close();
+
+            assignForm.Controls.Add(btnConfirm);
+            assignForm.Controls.Add(btnCancel);
+            assignForm.ShowDialog();
+        }
+
+        // ФОРМА С ЧЕКОМ ЗАКАЗА
+        private void ShowOrderReceipt(string receipt, string waiter, string cook)
+        {
+            Form receiptForm = new Form();
+            receiptForm.Text = "🧾 ЧЕК ЗАКАЗА";
+            receiptForm.StartPosition = FormStartPosition.CenterParent;
+            receiptForm.Size = new Size(550, 600);
+            receiptForm.FormBorderStyle = FormBorderStyle.FixedDialog;
+            receiptForm.MaximizeBox = false;
+            receiptForm.BackColor = Color.FromArgb(255, 248, 240);
+
+            Label title = new Label();
+            title.Text = "🧾 ЧЕК ЗАКАЗА №" + DateTime.Now.ToString("ddMMyyHHmmss");
+            title.Font = new Font("Segoe UI", 18, FontStyle.Bold);
+            title.ForeColor = Color.FromArgb(139, 69, 19);
+            title.Location = new Point(25, 20);
+            title.Size = new Size(500, 40);
+            title.TextAlign = ContentAlignment.MiddleCenter;
+            receiptForm.Controls.Add(title);
+
+            TextBox receiptBox = new TextBox();
+            receiptBox.Text = receipt;
+            receiptBox.Font = new Font("Consolas", 11);
+            receiptBox.Multiline = true;
+            receiptBox.ReadOnly = true;
+            receiptBox.ScrollBars = ScrollBars.Vertical;
+            receiptBox.Size = new Size(480, 350);
+            receiptBox.Location = new Point(25, 70);
+            receiptBox.BackColor = Color.White;
+            receiptBox.BorderStyle = BorderStyle.FixedSingle;
+            receiptForm.Controls.Add(receiptBox);
+
+            Button btnPrint = new Button();
+            btnPrint.Text = "🖨️ РАСПЕЧАТАТЬ ЧЕК";
+            btnPrint.Font = new Font("Segoe UI", 11, FontStyle.Bold);
+            btnPrint.Size = new Size(180, 45);
+            btnPrint.Location = new Point(25, 440);
+            btnPrint.BackColor = Color.FromArgb(63, 81, 181);
+            btnPrint.ForeColor = Color.White;
+            btnPrint.FlatStyle = FlatStyle.Flat;
+            btnPrint.Cursor = Cursors.Hand;
+            btnPrint.Click += (s, e) =>
+            {
+                MessageBox.Show("Чек отправлен на печать!\n\nСпросите у официанта бумажную версию.", "Печать", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            };
+            receiptForm.Controls.Add(btnPrint);
+
+            Button btnClose = new Button();
+            btnClose.Text = "✅ ЗАКРЫТЬ";
+            btnClose.Font = new Font("Segoe UI", 11, FontStyle.Bold);
+            btnClose.Size = new Size(180, 45);
+            btnClose.Location = new Point(325, 440);
+            btnClose.BackColor = Color.FromArgb(76, 175, 80);
+            btnClose.ForeColor = Color.White;
+            btnClose.FlatStyle = FlatStyle.Flat;
+            btnClose.Cursor = Cursors.Hand;
+            btnClose.Click += (s, e) =>
+            {
+                receiptForm.Close();
+                ShowNotification("Заказ оформлен", $"Ваш заказ передан {waiter}\n\nГотовит: {cook}\n\nПриятного аппетита!", "🎉", Color.FromArgb(76, 175, 80));
+            };
+            receiptForm.Controls.Add(btnClose);
+
+            receiptForm.ShowDialog();
+        }
+
+        // ИНСТРУКЦИЯ
+        private void ShowInstructions()
+        {
+            contentPanel.Controls.Clear();
+            contentPanel.BackColor = Color.White;
+            contentPanel.AutoScroll = true;
+
+            Panel headerPanel = new Panel();
+            headerPanel.Dock = DockStyle.Top;
+            headerPanel.Height = 70;
+            headerPanel.BackColor = Color.FromArgb(139, 69, 19);
+
+            Label title = new Label();
+            title.Text = "ℹ️ ИНСТРУКЦИЯ ПО ИСПОЛЬЗОВАНИЮ ℹ️";
+            title.Font = new Font("Segoe UI", 22, FontStyle.Bold);
+            title.Dock = DockStyle.Fill;
+            title.TextAlign = ContentAlignment.MiddleCenter;
+            title.ForeColor = Color.White;
+            headerPanel.Controls.Add(title);
+            contentPanel.Controls.Add(headerPanel);
+
+            Panel instructionsContainer = new Panel();
+            instructionsContainer.Dock = DockStyle.Fill;
+            instructionsContainer.AutoScroll = true;
+            instructionsContainer.Padding = new Padding(30);
+
+            FlowLayoutPanel flowPanel = new FlowLayoutPanel();
+            flowPanel.Dock = DockStyle.Fill;
+            flowPanel.FlowDirection = FlowDirection.TopDown;
+            flowPanel.WrapContents = false;
+            flowPanel.AutoScroll = true;
+
+            AddInstructionStep(flowPanel, "1", "📋", "Откройте раздел МЕНЮ", "Здесь представлены все доступные блюда с ценами и описанием", Color.FromArgb(76, 175, 80));
+            AddInstructionStep(flowPanel, "2", "➕", "Добавьте блюда в корзину", "Нажмите на кнопку 'ДОБАВИТЬ В ЗАКАЗ' под понравившимся блюдом", Color.FromArgb(52, 152, 219));
+            AddInstructionStep(flowPanel, "3", "🛒", "Перейдите в раздел ЗАКАЗЫ", "Здесь отобразятся все выбранные вами блюда", Color.FromArgb(255, 152, 0));
+            AddInstructionStep(flowPanel, "4", "🔢", "Управляйте количеством", "Используйте кнопки + и − для изменения количества блюд", Color.FromArgb(156, 39, 176));
+            AddInstructionStep(flowPanel, "5", "🗑️", "Удаляйте ненужные блюда", "Нажмите на крестик ✖ в карточке блюда для удаления", Color.FromArgb(244, 67, 54));
+            AddInstructionStep(flowPanel, "6", "✅", "Оформите заказ", "Нажмите 'ОФОРМИТЬ ЗАКАЗ', выберите официанта и повара", Color.FromArgb(76, 175, 80));
+            AddInstructionStep(flowPanel, "7", "🪑", "Забронируйте столик", "В разделе СТОЛИКИ выберите свободный столик", Color.FromArgb(63, 81, 181));
+            AddInstructionStep(flowPanel, "8", "👥", "Познакомьтесь с персоналом", "В разделе СОТРУДНИКИ информация о нашем коллективе", Color.FromArgb(121, 85, 72));
+
+            instructionsContainer.Controls.Add(flowPanel);
+            contentPanel.Controls.Add(instructionsContainer);
+        }
+
+        private void AddInstructionStep(FlowLayoutPanel panel, string number, string icon, string title, string description, Color color)
+        {
+            Panel stepCard = new Panel();
+            stepCard.Size = new Size(900, 90);
+            stepCard.Margin = new Padding(10, 5, 10, 5);
+            stepCard.BackColor = Color.White;
+            stepCard.BorderStyle = BorderStyle.FixedSingle;
+
+            Label numberLabel = new Label();
+            numberLabel.Text = number;
+            numberLabel.Font = new Font("Segoe UI", 20, FontStyle.Bold);
+            numberLabel.ForeColor = color;
+            numberLabel.Location = new Point(20, 25);
+            numberLabel.Size = new Size(50, 40);
+            numberLabel.TextAlign = ContentAlignment.MiddleCenter;
+
+            Label iconLabel = new Label();
+            iconLabel.Text = icon;
+            iconLabel.Font = new Font("Segoe UI", 32);
+            iconLabel.Location = new Point(80, 20);
+            iconLabel.Size = new Size(60, 50);
+            iconLabel.TextAlign = ContentAlignment.MiddleCenter;
+
+            Label titleLabel = new Label();
+            titleLabel.Text = title;
+            titleLabel.Font = new Font("Segoe UI", 14, FontStyle.Bold);
+            titleLabel.ForeColor = Color.FromArgb(64, 64, 64);
+            titleLabel.Location = new Point(155, 15);
+            titleLabel.Size = new Size(400, 30);
+
+            Label descLabel = new Label();
+            descLabel.Text = description;
+            descLabel.Font = new Font("Segoe UI", 10);
+            descLabel.ForeColor = Color.Gray;
+            descLabel.Location = new Point(155, 45);
+            descLabel.Size = new Size(700, 30);
+
+            stepCard.Controls.Add(numberLabel);
+            stepCard.Controls.Add(iconLabel);
+            stepCard.Controls.Add(titleLabel);
+            stepCard.Controls.Add(descLabel);
+
+            panel.Controls.Add(stepCard);
+        }
+
+        // КОРЗИНА
+        private void ShowCart()
+        {
+            contentPanel.Controls.Clear();
+            contentPanel.BackColor = Color.White;
+            contentPanel.AutoScroll = true;
+
+            Panel headerPanel = new Panel();
+            headerPanel.Dock = DockStyle.Top;
+            headerPanel.Height = 70;
+            headerPanel.BackColor = Color.FromArgb(139, 69, 19);
+
+            Label title = new Label();
+            title.Text = "🛒 ВАША КОРЗИНА 🛒";
+            title.Font = new Font("Segoe UI", 24, FontStyle.Bold);
+            title.Dock = DockStyle.Fill;
+            title.TextAlign = ContentAlignment.MiddleCenter;
+            title.ForeColor = Color.White;
+            headerPanel.Controls.Add(title);
+            contentPanel.Controls.Add(headerPanel);
+
+            Panel cartContainer = new Panel();
+            cartContainer.Dock = DockStyle.Fill;
+            cartContainer.AutoScroll = true;
+            cartContainer.Padding = new Padding(20, 30, 20, 20);
+
+            cartFlowPanel = new FlowLayoutPanel();
+            cartFlowPanel.Dock = DockStyle.Fill;
+            cartFlowPanel.AutoScroll = true;
+            cartFlowPanel.WrapContents = true;
+            cartFlowPanel.Padding = new Padding(10);
+
+            UpdateCartDisplay();
+            cartContainer.Controls.Add(cartFlowPanel);
+
+            Panel bottomPanel = new Panel();
+            bottomPanel.Dock = DockStyle.Bottom;
+            bottomPanel.Height = 100;
+            bottomPanel.BackColor = Color.FromArgb(248, 248, 248);
+            bottomPanel.Padding = new Padding(20);
+
+            decimal total = CalculateCartTotal();
+
+            Label totalLabel = new Label();
+            totalLabel.Text = $"💰 ИТОГО К ОПЛАТЕ: {total} ₽";
+            totalLabel.Font = new Font("Segoe UI", 18, FontStyle.Bold);
+            totalLabel.ForeColor = Color.FromArgb(76, 175, 80);
+            totalLabel.Size = new Size(400, 50);
+            totalLabel.Location = new Point(20, 25);
+            totalLabel.TextAlign = ContentAlignment.MiddleLeft;
+
+            Button btnClear = new Button();
+            btnClear.Text = "🗑️ ОЧИСТИТЬ КОРЗИНУ";
+            btnClear.Size = new Size(180, 50);
+            btnClear.Location = new Point(450, 25);
+            btnClear.BackColor = Color.FromArgb(244, 67, 54);
+            btnClear.ForeColor = Color.White;
+            btnClear.Font = new Font("Segoe UI", 11, FontStyle.Bold);
+            btnClear.FlatStyle = FlatStyle.Flat;
+            btnClear.Cursor = Cursors.Hand;
+            btnClear.Click += (s, e) =>
+            {
+                cartItems.Clear();
+                UpdateCartDisplay();
+                totalLabel.Text = "💰 ИТОГО К ОПЛАТЕ: 0 ₽";
+                ShowNotification("Корзина очищена", "Все блюда удалены из корзины", "🗑️", Color.FromArgb(244, 67, 54));
+            };
+
+            Button btnOrder = new Button();
+            btnOrder.Text = "✅ ОФОРМИТЬ ЗАКАЗ";
+            btnOrder.Size = new Size(200, 50);
+            btnOrder.Location = new Point(650, 25);
+            btnOrder.BackColor = Color.FromArgb(76, 175, 80);
+            btnOrder.ForeColor = Color.White;
+            btnOrder.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+            btnOrder.FlatStyle = FlatStyle.Flat;
+            btnOrder.Cursor = Cursors.Hand;
+            btnOrder.Click += (s, e) =>
+            {
+                if (cartItems.Count == 0)
+                {
+                    ShowNotification("Корзина пуста", "Добавьте блюда из меню", "🛒", Color.FromArgb(255, 152, 0));
+                    return;
+                }
+
+                decimal totalSum = CalculateCartTotal();
+                ShowOrderAssignmentForm(totalSum);
+
+                cartItems.Clear();
+                UpdateCartDisplay();
+                totalLabel.Text = "💰 ИТОГО К ОПЛАТЕ: 0 ₽";
+            };
+
+            bottomPanel.Controls.Add(totalLabel);
+            bottomPanel.Controls.Add(btnClear);
+            bottomPanel.Controls.Add(btnOrder);
+
+            contentPanel.Controls.Add(bottomPanel);
+            contentPanel.Controls.Add(cartContainer);
+        }
+
+        private void UpdateCartDisplay()
+        {
+            if (cartFlowPanel == null) return;
+            cartFlowPanel.Controls.Clear();
+
+            if (cartItems.Count == 0)
+            {
+                Label emptyLabel = new Label();
+                emptyLabel.Text = "🛒 КОРЗИНА ПУСТА\n\nДобавьте блюда из раздела МЕНЮ";
+                emptyLabel.Font = new Font("Segoe UI", 16, FontStyle.Bold);
+                emptyLabel.ForeColor = Color.Gray;
+                emptyLabel.Size = new Size(500, 100);
+                emptyLabel.TextAlign = ContentAlignment.MiddleCenter;
+                cartFlowPanel.Controls.Add(emptyLabel);
+                return;
+            }
+
+            foreach (var item in cartItems)
+            {
+                Panel cartCard = CreateCartCard(item);
+                cartFlowPanel.Controls.Add(cartCard);
+            }
+        }
+
+        private Panel CreateCartCard(CartItem item)
+        {
+            Panel card = new Panel();
+            card.Size = new Size(450, 130);
+            card.Margin = new Padding(15);
+            card.BackColor = Color.White;
+            card.BorderStyle = BorderStyle.FixedSingle;
+
+            Label emojiLabel = new Label();
+            emojiLabel.Text = item.Emoji;
+            emojiLabel.Font = new Font("Segoe UI", 48);
+            emojiLabel.Location = new Point(12, 12);
+            emojiLabel.Size = new Size(80, 80);
+            emojiLabel.TextAlign = ContentAlignment.MiddleCenter;
+            emojiLabel.BackColor = Color.FromArgb(245, 245, 245);
+
+            Label nameLabel = new Label();
+            nameLabel.Text = item.Name;
+            nameLabel.Font = new Font("Segoe UI", 14, FontStyle.Bold);
+            nameLabel.Location = new Point(105, 12);
+            nameLabel.Size = new Size(200, 30);
+            nameLabel.ForeColor = Color.FromArgb(64, 64, 64);
+
+            Label priceLabel = new Label();
+            priceLabel.Text = $"{item.Price} ₽ / шт";
+            priceLabel.Font = new Font("Segoe UI", 11);
+            priceLabel.Location = new Point(105, 45);
+            priceLabel.Size = new Size(150, 25);
+            priceLabel.ForeColor = Color.Gray;
+
+            Panel quantityPanel = new Panel();
+            quantityPanel.Location = new Point(105, 75);
+            quantityPanel.Size = new Size(150, 40);
+
+            Button btnMinus = new Button();
+            btnMinus.Text = "−";
+            btnMinus.Font = new Font("Segoe UI", 14, FontStyle.Bold);
+            btnMinus.Size = new Size(40, 35);
+            btnMinus.Location = new Point(0, 0);
+            btnMinus.BackColor = Color.FromArgb(255, 152, 0);
+            btnMinus.ForeColor = Color.White;
+            btnMinus.FlatStyle = FlatStyle.Flat;
+            btnMinus.Cursor = Cursors.Hand;
+            btnMinus.Click += (s, e) =>
+            {
+                if (item.Quantity > 1)
+                {
+                    item.Quantity--;
+                    UpdateCartDisplay();
+                }
+                else
+                {
+                    cartItems.Remove(item);
+                    UpdateCartDisplay();
+                }
+                UpdateTotalLabel();
+            };
+
+            Label qtyLabel = new Label();
+            qtyLabel.Text = item.Quantity.ToString();
+            qtyLabel.Font = new Font("Segoe UI", 14, FontStyle.Bold);
+            qtyLabel.Size = new Size(50, 35);
+            qtyLabel.Location = new Point(50, 0);
+            qtyLabel.TextAlign = ContentAlignment.MiddleCenter;
+            qtyLabel.BackColor = Color.White;
+
+            Button btnPlus = new Button();
+            btnPlus.Text = "+";
+            btnPlus.Font = new Font("Segoe UI", 14, FontStyle.Bold);
+            btnPlus.Size = new Size(40, 35);
+            btnPlus.Location = new Point(110, 0);
+            btnPlus.BackColor = Color.FromArgb(76, 175, 80);
+            btnPlus.ForeColor = Color.White;
+            btnPlus.FlatStyle = FlatStyle.Flat;
+            btnPlus.Cursor = Cursors.Hand;
+            btnPlus.Click += (s, e) =>
+            {
+                item.Quantity++;
+                UpdateCartDisplay();
+                UpdateTotalLabel();
+            };
+
+            quantityPanel.Controls.Add(btnMinus);
+            quantityPanel.Controls.Add(qtyLabel);
+            quantityPanel.Controls.Add(btnPlus);
+
+            decimal itemTotal = item.Price * item.Quantity;
+            Label totalLabel = new Label();
+            totalLabel.Text = $"{itemTotal} ₽";
+            totalLabel.Font = new Font("Segoe UI", 16, FontStyle.Bold);
+            totalLabel.ForeColor = Color.FromArgb(139, 69, 19);
+            totalLabel.Size = new Size(120, 40);
+            totalLabel.Location = new Point(310, 75);
+            totalLabel.TextAlign = ContentAlignment.MiddleRight;
+
+            Button btnDelete = new Button();
+            btnDelete.Text = "✖";
+            btnDelete.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+            btnDelete.Size = new Size(35, 35);
+            btnDelete.Location = new Point(400, 12);
+            btnDelete.BackColor = Color.FromArgb(244, 67, 54);
+            btnDelete.ForeColor = Color.White;
+            btnDelete.FlatStyle = FlatStyle.Flat;
+            btnDelete.Cursor = Cursors.Hand;
+            btnDelete.Click += (s, e) =>
+            {
+                cartItems.Remove(item);
+                UpdateCartDisplay();
+                UpdateTotalLabel();
+                ShowNotification("Блюдо удалено", $"{item.Name} удалено из корзины", "🗑️", Color.FromArgb(244, 67, 54));
+            };
+
+            card.Controls.Add(emojiLabel);
+            card.Controls.Add(nameLabel);
+            card.Controls.Add(priceLabel);
+            card.Controls.Add(quantityPanel);
+            card.Controls.Add(totalLabel);
+            card.Controls.Add(btnDelete);
+
+            return card;
+        }
+
+        private void UpdateTotalLabel()
+        {
+            if (contentPanel.Controls.Count > 0)
+            {
+                foreach (Control control in contentPanel.Controls)
+                {
+                    if (control is Panel bottomPanel)
+                    {
+                        foreach (Control child in bottomPanel.Controls)
+                        {
+                            if (child is Label label && label.Text.StartsWith("💰"))
+                            {
+                                label.Text = $"💰 ИТОГО К ОПЛАТЕ: {CalculateCartTotal()} ₽";
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private decimal CalculateCartTotal()
+        {
+            decimal total = 0;
+            foreach (var item in cartItems)
+            {
+                total += item.Price * item.Quantity;
+            }
+            return total;
+        }
+
+        // МЕНЮ
+        private void ShowMenu()
+        {
+            contentPanel.Controls.Clear();
+            contentPanel.BackColor = Color.White;
+            contentPanel.AutoScroll = true;
+
+            Panel headerPanel = new Panel();
+            headerPanel.Dock = DockStyle.Top;
+            headerPanel.Height = 70;
+            headerPanel.BackColor = Color.FromArgb(139, 69, 19);
+
+            Label title = new Label();
+            title.Text = "🍽️ НАШЕ МЕНЮ 🍽️";
+            title.Font = new Font("Segoe UI", 24, FontStyle.Bold);
+            title.Dock = DockStyle.Fill;
+            title.TextAlign = ContentAlignment.MiddleCenter;
+            title.ForeColor = Color.White;
+            headerPanel.Controls.Add(title);
+            contentPanel.Controls.Add(headerPanel);
+
+            Panel cardsContainer = new Panel();
+            cardsContainer.Dock = DockStyle.Fill;
+            cardsContainer.AutoScroll = true;
+            cardsContainer.Padding = new Padding(20, 30, 20, 20);
+
+            FlowLayoutPanel flowPanel = new FlowLayoutPanel();
+            flowPanel.Dock = DockStyle.Fill;
+            flowPanel.AutoScroll = true;
+            flowPanel.WrapContents = true;
+
+            AddDish(flowPanel, "🥗", "Цезарь с курицей", "Курица, салат, пармезан", 350, Color.FromArgb(76, 175, 80));
+            AddDish(flowPanel, "🥗", "Греческий салат", "Сыр фета, оливки, овощи", 280, Color.FromArgb(76, 175, 80));
+            AddDish(flowPanel, "🥣", "Борщ", "Наваристый борщ со сметаной", 250, Color.FromArgb(255, 152, 0));
+            AddDish(flowPanel, "🥩", "Стейк из говядины", "Мраморная говядина", 650, Color.FromArgb(244, 67, 54));
+            AddDish(flowPanel, "🍝", "Паста Карбонара", "Спагетти, бекон, сливки", 380, Color.FromArgb(255, 152, 0));
+            AddDish(flowPanel, "🍕", "Маргарита", "Моцарелла, томатный соус", 450, Color.FromArgb(244, 67, 54));
+            AddDish(flowPanel, "🍰", "Тирамису", "Кофе, маскарпоне", 220, Color.FromArgb(156, 39, 176));
+            AddDish(flowPanel, "🍰", "Чизкейк", "Нежный чизкейк", 200, Color.FromArgb(156, 39, 176));
+            AddDish(flowPanel, "☕", "Латте", "Кофе с молоком", 180, Color.FromArgb(63, 81, 181));
+            AddDish(flowPanel, "☕", "Капучино", "Кофе с пенкой", 170, Color.FromArgb(63, 81, 181));
+            AddDish(flowPanel, "🍵", "Зеленый чай", "С жасмином", 120, Color.FromArgb(63, 81, 181));
+            AddDish(flowPanel, "🍹", "Мохито", "Мята, лайм", 250, Color.FromArgb(76, 175, 80));
+
+            cardsContainer.Controls.Add(flowPanel);
+            contentPanel.Controls.Add(cardsContainer);
+        }
+
+        private void AddDish(FlowLayoutPanel panel, string emoji, string name, string desc, decimal price, Color color)
+        {
+            Panel card = new Panel();
+            card.Size = new Size(280, 180);
+            card.Margin = new Padding(12);
+            card.BackColor = Color.White;
+            card.BorderStyle = BorderStyle.FixedSingle;
+
+            Label emojiLabel = new Label();
+            emojiLabel.Text = emoji;
+            emojiLabel.Font = new Font("Segoe UI", 48);
+            emojiLabel.Location = new Point(12, 12);
+            emojiLabel.Size = new Size(75, 70);
+            emojiLabel.TextAlign = ContentAlignment.MiddleCenter;
+            emojiLabel.BackColor = Color.FromArgb(245, 245, 245);
+
+            Label nameLabel = new Label();
+            nameLabel.Text = name;
+            nameLabel.Font = new Font("Segoe UI", 13, FontStyle.Bold);
+            nameLabel.Location = new Point(95, 12);
+            nameLabel.Size = new Size(170, 25);
+
+            Label descLabel = new Label();
+            descLabel.Text = desc;
+            descLabel.Font = new Font("Segoe UI", 9);
+            descLabel.Location = new Point(95, 42);
+            descLabel.Size = new Size(170, 50);
+            descLabel.ForeColor = Color.Gray;
+
+            Label priceLabel = new Label();
+            priceLabel.Text = $"{price} ₽";
+            priceLabel.Font = new Font("Segoe UI", 16, FontStyle.Bold);
+            priceLabel.Location = new Point(12, 95);
+            priceLabel.Size = new Size(120, 35);
+            priceLabel.ForeColor = color;
+
+            Button orderBtn = new Button();
+            orderBtn.Text = "➕ ДОБАВИТЬ В ЗАКАЗ";
+            orderBtn.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+            orderBtn.Location = new Point(12, 135);
+            orderBtn.Size = new Size(255, 35);
+            orderBtn.BackColor = color;
+            orderBtn.ForeColor = Color.White;
+            orderBtn.FlatStyle = FlatStyle.Flat;
+            orderBtn.Cursor = Cursors.Hand;
+
+            orderBtn.Click += (s, e) => AddToCart(emoji, name, price);
+
+            card.Controls.Add(emojiLabel);
+            card.Controls.Add(nameLabel);
+            card.Controls.Add(descLabel);
+            card.Controls.Add(priceLabel);
+            card.Controls.Add(orderBtn);
+            panel.Controls.Add(card);
+        }
+
+        private void AddToCart(string emoji, string name, decimal price)
+        {
+            foreach (var item in cartItems)
+            {
+                if (item.Name == name)
+                {
+                    item.Quantity++;
+                    UpdateCartDisplay();
+                    ShowNotification("Добавлено в корзину", $"{name}\n\nКоличество: {item.Quantity}\nСумма: {price * item.Quantity} ₽", "➕", Color.FromArgb(76, 175, 80));
+                    return;
+                }
+            }
+
+            cartItems.Add(new CartItem { Emoji = emoji, Name = name, Price = price, Quantity = 1 });
+            UpdateCartDisplay();
+            ShowNotification("Добавлено в корзину", $"{name}\n\nЦена: {price} ₽\nКоличество: 1", "✅", Color.FromArgb(76, 175, 80));
+        }
+
+        // СТОЛИКИ
+        private void ShowTables()
+        {
+            contentPanel.Controls.Clear();
+            contentPanel.BackColor = Color.White;
+            contentPanel.AutoScroll = true;
+
+            Panel headerPanel = new Panel();
+            headerPanel.Dock = DockStyle.Top;
+            headerPanel.Height = 70;
+            headerPanel.BackColor = Color.FromArgb(139, 69, 19);
+
+            Label title = new Label();
+            title.Text = "🪑 БРОНИРОВАНИЕ СТОЛИКОВ 🪑";
+            title.Font = new Font("Segoe UI", 24, FontStyle.Bold);
+            title.Dock = DockStyle.Fill;
+            title.TextAlign = ContentAlignment.MiddleCenter;
+            title.ForeColor = Color.White;
+            headerPanel.Controls.Add(title);
+            contentPanel.Controls.Add(headerPanel);
+
+            FlowLayoutPanel tablesPanel = new FlowLayoutPanel();
+            tablesPanel.Dock = DockStyle.Fill;
+            tablesPanel.AutoScroll = true;
+            tablesPanel.Padding = new Padding(30, 30, 30, 30);
+            tablesPanel.WrapContents = true;
+
+            for (int i = 1; i <= 12; i++)
+            {
+                Panel tableCard = new Panel();
+                tableCard.Size = new Size(220, 150);
+                tableCard.Margin = new Padding(15);
+                tableCard.BackColor = Color.White;
+                tableCard.BorderStyle = BorderStyle.FixedSingle;
+
+                Label tableNum = new Label();
+                tableNum.Text = $"СТОЛИК №{i}";
+                tableNum.Font = new Font("Segoe UI", 14, FontStyle.Bold);
+                tableNum.Dock = DockStyle.Top;
+                tableNum.Height = 40;
+                tableNum.TextAlign = ContentAlignment.MiddleCenter;
+                tableNum.BackColor = Color.FromArgb(139, 69, 19);
+                tableNum.ForeColor = Color.White;
+
+                int seats = i <= 4 ? 2 : (i <= 8 ? 4 : 6);
+                Label capacity = new Label();
+                capacity.Text = $"👥 Мест: {seats}";
+                capacity.Font = new Font("Segoe UI", 12);
+                capacity.Location = new Point(15, 55);
+                capacity.Size = new Size(190, 30);
+
+                bool isFree = i % 3 != 0;
+                Label status = new Label();
+                status.Text = isFree ? "🟢 СВОБОДЕН" : "🔴 ЗАНЯТ";
+                status.Font = new Font("Segoe UI", 11, FontStyle.Bold);
+                status.ForeColor = isFree ? Color.Green : Color.Red;
+                status.Location = new Point(15, 90);
+                status.Size = new Size(190, 25);
+
+                Button btnBook = new Button();
+                btnBook.Text = isFree ? "ЗАБРОНИРОВАТЬ" : "ЗАНЯТ";
+                btnBook.Location = new Point(15, 115);
+                btnBook.Size = new Size(190, 25);
+                btnBook.BackColor = isFree ? Color.Green : Color.Gray;
+                btnBook.ForeColor = Color.White;
+                btnBook.FlatStyle = FlatStyle.Flat;
+                btnBook.Cursor = Cursors.Hand;
+                btnBook.Enabled = isFree;
+                btnBook.Click += (s, e) =>
+                {
+                    if (isFree)
+                        ShowNotification("Бронирование", $"Столик №{i} успешно забронирован!\n\nМест: {seats}", "🪑", Color.FromArgb(76, 175, 80));
+                };
+
+                tableCard.Controls.Add(tableNum);
+                tableCard.Controls.Add(capacity);
+                tableCard.Controls.Add(status);
+                tableCard.Controls.Add(btnBook);
+                tablesPanel.Controls.Add(tableCard);
+            }
+            contentPanel.Controls.Add(tablesPanel);
+        }
+
+        // СОТРУДНИКИ
+        private void ShowEmployees()
+        {
+            contentPanel.Controls.Clear();
+            contentPanel.BackColor = Color.FromArgb(248, 248, 248);
+            contentPanel.AutoScroll = true;
+
+            Panel headerPanel = new Panel();
+            headerPanel.Dock = DockStyle.Top;
+            headerPanel.Height = 70;
+            headerPanel.BackColor = Color.FromArgb(139, 69, 19);
+
+            Label title = new Label();
+            title.Text = "👥 НАША КОМАНДА 👥";
+            title.Font = new Font("Segoe UI", 24, FontStyle.Bold);
+            title.Dock = DockStyle.Fill;
+            title.TextAlign = ContentAlignment.MiddleCenter;
+            title.ForeColor = Color.White;
+            headerPanel.Controls.Add(title);
+            contentPanel.Controls.Add(headerPanel);
+
+            FlowLayoutPanel cardsPanel = new FlowLayoutPanel();
+            cardsPanel.Dock = DockStyle.Fill;
+            cardsPanel.AutoScroll = true;
+            cardsPanel.Padding = new Padding(30, 30, 30, 30);
+            cardsPanel.WrapContents = true;
+
+            var employees = new[]
+            {
+                new { Emoji = "👨‍🍳", Name = "Александр Петров", Position = "Шеф-повар", Description = "20 лет опыта. Специализация: европейская кухня", Color = Color.FromArgb(76, 175, 80) },
+                new { Emoji = "👩‍🍳", Name = "Елена Иванова", Position = "Повар-кондитер", Description = "Мастер десертов. Создает кулинарные шедевры", Color = Color.FromArgb(255, 152, 0) },
+                new { Emoji = "👨‍💼", Name = "Михаил Соколов", Position = "Администратор", Description = "Организация работы зала. Решение любых вопросов", Color = Color.FromArgb(63, 81, 181) },
+                new { Emoji = "👩‍🦰", Name = "Анна Крылова", Position = "Старший официант", Description = "Вежливое обслуживание. Знает всё о меню", Color = Color.FromArgb(156, 39, 176) },
+                new { Emoji = "👨", Name = "Дмитрий Воробьев", Position = "Бариста", Description = "Кофейный эксперт. Лучший латте-арт в городе", Color = Color.FromArgb(244, 67, 54) }
+            };
+
+            foreach (var emp in employees)
+            {
+                Panel card = CreateEmployeeCard(emp.Emoji, emp.Name, emp.Position, emp.Description, emp.Color);
+                cardsPanel.Controls.Add(card);
+            }
+            contentPanel.Controls.Add(cardsPanel);
+        }
+
+        private Panel CreateEmployeeCard(string emoji, string name, string position, string description, Color accentColor)
+        {
+            Panel card = new Panel();
+            card.Size = new Size(320, 160);
+            card.Margin = new Padding(15);
+            card.BackColor = Color.White;
+            card.BorderStyle = BorderStyle.FixedSingle;
+
+            Label photoLabel = new Label();
+            photoLabel.Text = emoji;
+            photoLabel.Font = new Font("Segoe UI", 48);
+            photoLabel.Location = new Point(15, 20);
+            photoLabel.Size = new Size(70, 70);
+            photoLabel.TextAlign = ContentAlignment.MiddleCenter;
+            photoLabel.BackColor = Color.FromArgb(245, 245, 245);
+
+            Label nameLabel = new Label();
+            nameLabel.Text = name;
+            nameLabel.Font = new Font("Segoe UI", 13, FontStyle.Bold);
+            nameLabel.Location = new Point(100, 20);
+            nameLabel.Size = new Size(200, 25);
+
+            Label positionLabel = new Label();
+            positionLabel.Text = position;
+            positionLabel.Font = new Font("Segoe UI", 11, FontStyle.Italic);
+            positionLabel.ForeColor = accentColor;
+            positionLabel.Location = new Point(100, 48);
+            positionLabel.Size = new Size(200, 25);
+
+            Label descLabel = new Label();
+            descLabel.Text = description;
+            descLabel.Font = new Font("Segoe UI", 9);
+            descLabel.ForeColor = Color.Gray;
+            descLabel.Location = new Point(15, 105);
+            descLabel.Size = new Size(290, 40);
+            descLabel.TextAlign = ContentAlignment.TopLeft;
+
+            card.Controls.Add(photoLabel);
+            card.Controls.Add(nameLabel);
+            card.Controls.Add(positionLabel);
+            card.Controls.Add(descLabel);
+            return card;
+        }
+    }
+
+    // КЛАСС ДЛЯ ХРАНЕНИЯ ЭЛЕМЕНТОВ КОРЗИНЫ
+    public class CartItem
+    {
+        public string Emoji { get; set; }
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+        public int Quantity { get; set; }
+    }
+}
